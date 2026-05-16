@@ -157,26 +157,11 @@ async function cacheScheduleData() {
             standingsData,
             cachedAt: new Date().toISOString()
         };
-        const cache = await caches.open(CACHE_NAME);
-        const response = new Response(JSON.stringify(data));
-        await cache.put(CACHE_KEY, response);
+        await chrome.storage.local.set({ cachedData: data });
         console.log("賽程資料已快取用於離線使用。");
     } catch (error) {
         console.error("快取賽程失敗:", error);
     }
-}
-
-async function getOfflineData() {
-    try {
-        const cache = await caches.open(CACHE_NAME);
-        const response = await cache.match(CACHE_KEY);
-        if (response) {
-            return await response.json();
-        }
-    } catch (error) {
-        console.error("讀取離線資料失敗:", error);
-    }
-    return null;
 }
 
 // 監聽鬧鐘
@@ -205,20 +190,3 @@ chrome.runtime.onStartup.addListener(() => {
     updateSchedule();
     cacheScheduleData();
 });
-
-// 當 fetch 失敗時，提供離線資料
-chrome.webRequest.onErrorOccurred.addListener((details) => {
-    if (details.url.includes('statsapi.mlb.com')) {
-        console.log("網路錯誤，切換到離線模式");
-        getOfflineData().then(data => {
-            if (data) {
-                chrome.storage.local.set({
-                    scheduleData: data.scheduleData,
-                    standingsData: data.standingsData,
-                    lastUpdated: data.cachedAt,
-                    isOffline: true
-                });
-            }
-        });
-    }
-}, { urls: ["https://statsapi.mlb.com/*"] });
