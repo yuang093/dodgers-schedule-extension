@@ -144,10 +144,46 @@ async function updateSchedule() {
     }
 }
 
+// 離線模式快取
+const CACHE_NAME = 'dodgers-schedule-cache-v1';
+const CACHE_KEY = 'offline-schedule-data';
+
+async function cacheScheduleData() {
+    try {
+        const scheduleData = await fetchDodgersSchedule();
+        const standingsData = await fetchDodgersStandings();
+        const data = {
+            scheduleData,
+            standingsData,
+            cachedAt: new Date().toISOString()
+        };
+        const cache = await caches.open(CACHE_NAME);
+        const response = new Response(JSON.stringify(data));
+        await cache.put(CACHE_KEY, response);
+        console.log("賽程資料已快取用於離線使用。");
+    } catch (error) {
+        console.error("快取賽程失敗:", error);
+    }
+}
+
+async function getOfflineData() {
+    try {
+        const cache = await caches.open(CACHE_NAME);
+        const response = await cache.match(CACHE_KEY);
+        if (response) {
+            return await response.json();
+        }
+    } catch (error) {
+        console.error("讀取離線資料失敗:", error);
+    }
+    return null;
+}
+
 // 監聽鬧鐘
 chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === 'scheduleUpdate') {
         updateSchedule();
+        cacheScheduleData();
     }
 });
 
@@ -156,6 +192,7 @@ chrome.runtime.onInstalled.addListener(() => {
     console.log("擴充功能已安裝/更新。");
     // 立即執行一次更新
     updateSchedule();
+    cacheScheduleData();
     // 設定每 10 分鐘更新一次的鬧鐘
     chrome.alarms.create('scheduleUpdate', {
         delayInMinutes: 1,
@@ -166,4 +203,22 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.runtime.onStartup.addListener(() => {
     console.log("瀏覽器啟動。");
     updateSchedule();
+    cacheScheduleData();
 });
+
+// 當 fetch 失敗時，提供離線資料
+chrome.webRequest.onErrorOccurred.addListener((details) => {
+    if (details.url.includes('statsapi.mlb.com')) {
+        console.log("網路錯誤，切換到離線模式");
+        getOfflineData().then(data => {
+            if (data) {
+                chrome.storage.local.set({
+                    scheduleData: data.scheduleData,
+                    standingsData: data.standingsData,
+                    lastUpdated: data.cachedAt,
+                    isOffline: true
+                });
+            }
+        });
+    }
+}, { urls: ["https://statsapi.mlb.com/*"] });

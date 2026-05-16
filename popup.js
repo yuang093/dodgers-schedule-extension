@@ -191,6 +191,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const standingsRank = document.getElementById('standings-rank');
     const standingsRecord = document.getElementById('standings-record');
     const standingsPct = document.getElementById('standings-pct');
+    const offlineIndicator = document.getElementById('offline-indicator');
+    const updateInfoEl = document.getElementById('update-info');
 
     function getTeamLogoPath(teamName) {
         const teamId = TEAM_ID_MAPPING[teamName] || 119;
@@ -357,6 +359,16 @@ document.addEventListener('DOMContentLoaded', function () {
             });
             scheduleBody.appendChild(row);
         });
+
+        // 離線指示器
+        if (data.isOffline) {
+            offlineIndicator.style.display = 'inline';
+            updateInfoEl.textContent = '離線資料';
+        } else if (data.lastUpdated) {
+            const updateTime = new Date(data.lastUpdated);
+            const twTime = new Date(updateTime.toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+            updateInfoEl.textContent = twTime.toTimeString().split(' ')[0];
+        }
     }
 
     function updateTime() {
