@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "洛杉磯道奇賽程",
+  "version": "1.0",
+  "description": "顯示洛杉磯道奇隊的即時賽程與比分。",
+  "permissions": [
+    "storage",
+    "alarms",
+    "offscreen"
+  ],
+  "host_permissions": [
+    "https://statsapi.mlb.com/"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [ "img/*.png" ],
+      "matches": [ "<all_urls>" ]
+    }
+  ]
+}

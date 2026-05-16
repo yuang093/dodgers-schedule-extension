@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>洛杉磯道奇賽程</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="header">
+        <h1 class="title">洛杉磯道奇賽程</h1>
+        <div class="logo-container" id="logo-container"></div>
+    </div>
+    <div class="time-info">
+        <span class="time" id="current-time">
+            <span>🕐</span>
+            <span>載入中...</span>
+        </span>
+        <span class="countdown" id="countdown">--:--</span>
+    </div>
+    <div class="schedule-container">
+        <table id="schedule-table">
+            <thead>
+                <tr>
+                    <th>日期</th>
+                    <th>對手</th>
+                    <th>時間</th>
+                    <th>狀態</th>
+                    <th>比數</th>
+                    <th>局數</th>
+                </tr>
+            </thead>
+            <tbody id="schedule-body">
+                <tr>
+                    <td colspan="6">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <span>正在載入賽程資料...</span>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>

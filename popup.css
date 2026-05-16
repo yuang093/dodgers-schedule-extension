@@ -1,0 +1,289 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    /* 深色主題色彩 */
+    --bg-primary: #0d1117;
+    --bg-secondary: #161b22;
+    --bg-card: #21262d;
+    --accent-blue: #1f6feb;
+    --accent-red: #da3633;
+    --accent-gold: #d29922;
+    --text-primary: #f0f6fc;
+    --text-secondary: #8b949e;
+    --border-color: #30363d;
+    --success: #238636;
+    --warning: #9e6a03;
+}
+
+body {
+    font-family: 'Segoe UI', 'Microsoft JhengHei', system-ui, sans-serif;
+    width: 420px;
+    min-height: 500px;
+    padding: 0;
+    background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+    color: var(--text-primary);
+}
+
+/* Header */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.title::before {
+    content: '⚾';
+    font-size: 20px;
+}
+
+/* Logo Container */
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+}
+
+.logo-container img {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: contain;
+    background: var(--bg-card);
+    padding: 4px;
+    border: 2px solid var(--border-color);
+    box-shadow: 0 0 12px rgba(31, 111, 235, 0.3);
+}
+
+.logo-container img:last-child {
+    border-color: var(--accent-red);
+    box-shadow: 0 0 12px rgba(218, 54, 51, 0.3);
+}
+
+.vs-text {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+/* Time Info */
+.time-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.time-info .time {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.time-info .countdown {
+    color: var(--accent-blue);
+    font-weight: 500;
+}
+
+/* Schedule Container */
+.schedule-container {
+    padding: 12px 16px;
+}
+
+/* Schedule Table */
+#schedule-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 8px;
+    font-size: 13px;
+}
+
+#schedule-table th {
+    background: transparent;
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+#schedule-table th:first-child {
+    border-radius: 8px 0 0 8px;
+}
+
+#schedule-table th:last-child {
+    border-radius: 0 8px 8px 0;
+}
+
+#schedule-table td {
+    background: var(--bg-card);
+    padding: 12px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+#schedule-table tbody tr {
+    transition: transform 0.2s ease;
+}
+
+#schedule-table tbody tr:hover td {
+    background: var(--bg-secondary);
+    transform: translateX(4px);
+}
+
+/* Row States */
+.today td {
+    background: linear-gradient(135deg, rgba(31, 111, 235, 0.15), rgba(31, 111, 235, 0.05));
+    border-left: 3px solid var(--accent-blue);
+}
+
+.win td {
+    background: linear-gradient(135deg, rgba(35, 134, 54, 0.15), rgba(35, 134, 54, 0.05));
+    border-left: 3px solid var(--success);
+}
+
+.loss td {
+    background: linear-gradient(135deg, rgba(218, 54, 51, 0.15), rgba(218, 54, 51, 0.05));
+    border-left: 3px solid var(--accent-red);
+}
+
+.final td {
+    opacity: 0.7;
+}
+
+/* Score Badge */
+.score-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 16px;
+    font-weight: 700;
+    font-size: 14px;
+    background: var(--bg-secondary);
+}
+
+.win .score-badge {
+    color: var(--success);
+    background: rgba(35, 134, 54, 0.2);
+}
+
+.loss .score-badge {
+    color: var(--accent-red);
+    background: rgba(218, 54, 51, 0.2);
+}
+
+/* Status Badge */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.status-scheduled {
+    background: rgba(31, 111, 235, 0.2);
+    color: var(--accent-blue);
+}
+
+.status-progress {
+    background: rgba(210, 153, 34, 0.2);
+    color: var(--accent-gold);
+    animation: pulse 2s infinite;
+}
+
+.status-final {
+    background: rgba(139, 148, 158, 0.2);
+    color: var(--text-secondary);
+}
+
+/* Inning Display */
+.inning {
+    font-size: 11px;
+    color: var(--accent-gold);
+    font-weight: 600;
+}
+
+/* Loading State */
+.loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--accent-blue);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+/* No Data */
+.no-data {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 400px) {
+    body {
+        width: 100%;
+    }
+
+    #schedule-table {
+        font-size: 12px;
+    }
+
+    #schedule-table td {
+        padding: 10px 8px;
+    }
+
+    .logo-container img {
+        width: 40px;
+        height: 40px;
+    }
+}
