@@ -20,11 +20,11 @@ function convertToTaiwanTime(utcTimeStr) {
     }
 }
 
-// 獲取日期範圍
+// 獲取日期範圍 (前5天到後2天)
 function getScheduleDates() {
     const today = new Date();
     const dates = [];
-    for (let i = -2; i < 3; i++) {
+    for (let i = -5; i < 3; i++) {
         const date = new Date(today);
         date.setDate(date.getDate() + i);
         dates.push(date.toISOString().split('T')[0]);

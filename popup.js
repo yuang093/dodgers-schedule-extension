@@ -53,6 +53,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const logoContainer = document.getElementById('logo-container');
     const timeLabel = document.getElementById('current-time');
     const countdownLabel = document.getElementById('countdown');
+    const statsRecord = document.getElementById('stats-record');
+    const countdownLabelEl = document.getElementById('countdown-label');
 
     function getTeamLogoPath(teamName) {
         const teamId = TEAM_ID_MAPPING[teamName] || 119;
@@ -69,6 +71,78 @@ document.addEventListener('DOMContentLoaded', function () {
         } catch (e) {
             return null;
         }
+    }
+
+    function calculateSeasonRecord(data) {
+        if (!data.scheduleData) return { wins: 0, losses: 0 };
+        let wins = 0, losses = 0;
+        data.scheduleData.forEach(game => {
+            const result = isDodgersWin(game);
+            if (result === true) wins++;
+            else if (result === false) losses++;
+        });
+        return { wins, losses };
+    }
+
+    function findNextGame(data) {
+        if (!data.scheduleData) return null;
+        const now = new Date();
+        const today = now.toISOString().split('T')[0];
+        const currentTime = now.toTimeString().split(' ')[0];
+
+        for (const game of data.scheduleData) {
+            if (game.date > today) return game;
+            if (game.date === today && game.time > currentTime && ['Scheduled', 'Warmup', 'Delayed'].includes(game.raw_status)) {
+                return game;
+            }
+        }
+        return null;
+    }
+
+    function updateStatsBar(data) {
+        const record = calculateSeasonRecord(data);
+        statsRecord.innerHTML = `<span class="wins">${record.wins}勝</span> <span class="losses">${record.losses}負</span>`;
+
+        const nextGame = findNextGame(data);
+        if (nextGame) {
+            countdownLabelEl.textContent = '下一場';
+            startCountdown(nextGame);
+        } else {
+            countdownLabelEl.textContent = '賽季結束';
+            countdownLabel.textContent = '--:--:--';
+        }
+    }
+
+    function startCountdown(nextGame) {
+        if (window.countdownIntervalId) {
+            clearInterval(window.countdownIntervalId);
+        }
+
+        function updateCountdown() {
+            const now = new Date();
+            const gameDateTime = new Date(`${nextGame.date}T${nextGame.time}:00`);
+            const diff = gameDateTime - now;
+
+            if (diff <= 0) {
+                countdownLabel.textContent = '比賽中';
+                clearInterval(window.countdownIntervalId);
+                return;
+            }
+
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            if (days > 0) {
+                countdownLabel.textContent = `${days}天 ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            } else {
+                countdownLabel.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }
+        }
+
+        window.countdownIntervalId = setInterval(updateCountdown, 1000);
+        updateCountdown();
     }
 
     function updateUI(data) {
@@ -142,25 +216,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    function updateCountdown(lastUpdated) {
-        if (!lastUpdated) return;
-        const updateInterval = 10 * 60 * 1000;
-        const lastUpdateTime = new Date(lastUpdated);
-
-        if (window.countdownIntervalId) {
-            clearInterval(window.countdownIntervalId);
-        }
-
-        window.countdownIntervalId = setInterval(() => {
-            const now = new Date();
-            const elapsed = now - lastUpdateTime;
-            const remaining = Math.max(0, updateInterval - (elapsed % updateInterval));
-            const minutes = Math.floor(remaining / 60000);
-            const seconds = Math.floor((remaining % 60000) / 1000);
-            countdownLabel.textContent = `下次更新: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        }, 1000);
-    }
-
     function updateTime() {
         const now = new Date();
         const twTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
@@ -181,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function () {
     chrome.storage.local.get(['scheduleData', 'lastUpdated'], (result) => {
         if (result.scheduleData) {
             updateUI(result);
-            updateCountdown(result.lastUpdated);
+            updateStatsBar(result);
         } else {
             scheduleBody.innerHTML = '<tr><td colspan="6">正在載入賽程資料...</td></tr>';
         }
@@ -192,7 +247,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (area === 'local' && changes.scheduleData) {
             chrome.storage.local.get(['scheduleData', 'lastUpdated'], (result) => {
                 updateUI(result);
-                updateCountdown(result.lastUpdated);
+                updateStatsBar(result);
             });
         }
     });

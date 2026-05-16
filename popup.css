@@ -21,8 +21,8 @@
 
 body {
     font-family: 'Segoe UI', 'Microsoft JhengHei', system-ui, sans-serif;
-    width: 420px;
-    min-height: 500px;
+    width: 700px !important;
+    min-height: 600px;
     padding: 0;
     background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
     color: var(--text-primary);
@@ -85,6 +85,64 @@ body {
     font-weight: 600;
 }
 
+/* Stats Bar */
+.stats-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, var(--bg-card), var(--bg-secondary));
+    border-bottom: 1px solid var(--border-color);
+}
+
+.stats-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.stats-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.stats-record {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    gap: 8px;
+}
+
+.stats-record .wins {
+    color: var(--success);
+}
+
+.stats-record .losses {
+    color: var(--accent-red);
+}
+
+.stats-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.countdown-label {
+    font-size: 10px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+.countdown-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent-gold);
+    font-variant-numeric: tabular-nums;
+}
+
 /* Time Info */
 .time-info {
     display: flex;
@@ -103,7 +161,7 @@ body {
     gap: 6px;
 }
 
-.time-info .countdown {
+.time-info .update-info {
     color: var(--accent-blue);
     font-weight: 500;
 }

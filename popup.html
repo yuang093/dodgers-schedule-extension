@@ -11,13 +11,27 @@
         <h1 class="title">洛杉磯道奇賽程</h1>
         <div class="logo-container" id="logo-container"></div>
     </div>
+
+    <!-- 戰績與倒數區 -->
+    <div class="stats-bar">
+        <div class="stats-left">
+            <span class="stats-label">賽季戰績</span>
+            <span class="stats-record" id="stats-record">--勝 --負</span>
+        </div>
+        <div class="stats-right">
+            <span class="countdown-label" id="countdown-label">下一場</span>
+            <span class="countdown-value" id="countdown">--:--:--</span>
+        </div>
+    </div>
+
     <div class="time-info">
         <span class="time" id="current-time">
             <span>🕐</span>
             <span>載入中...</span>
         </span>
-        <span class="countdown" id="countdown">--:--</span>
+        <span class="update-info" id="update-info">--:--</span>
     </div>
+
     <div class="schedule-container">
         <table id="schedule-table">
             <thead>
