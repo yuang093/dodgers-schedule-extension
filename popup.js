@@ -122,6 +122,66 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // 比賽提醒功能
+    const reminderBtn = document.getElementById('reminder-btn');
+
+    function updateReminderBtnState() {
+        chrome.storage.local.get(['reminderEnabled'], (result) => {
+            if (result.reminderEnabled) {
+                reminderBtn.classList.add('active');
+            } else {
+                reminderBtn.classList.remove('active');
+            }
+        });
+    }
+
+    reminderBtn.addEventListener('click', async () => {
+        const result = await chrome.storage.local.get(['reminderEnabled', 'scheduleData']);
+        const isEnabled = result.reminderEnabled;
+
+        if (!isEnabled) {
+            const nextGame = findNextGame(result);
+            if (nextGame) {
+                const gameTime = new Date(`${nextGame.date}T${nextGame.time}:00`);
+                const reminderTime = new Date(gameTime.getTime() - 30 * 60 * 1000);
+
+                if (reminderTime > new Date()) {
+                    chrome.alarms.create('gameReminder', {
+                        when: reminderTime.getTime()
+                    });
+                    chrome.storage.local.set({ reminderEnabled: true, reminderGame: nextGame });
+                    reminderBtn.classList.add('active');
+                    alert(`已設定提醒！將在比賽前 30 分鐘通知你。\n${nextGame.date} ${nextGame.time}`);
+                } else {
+                    alert('這場比賽即將開始，無法設定提醒。');
+                }
+            } else {
+                alert('目前沒有即將到來的比賽。');
+            }
+        } else {
+            chrome.alarms.clear('gameReminder');
+            chrome.storage.local.set({ reminderEnabled: false, reminderGame: null });
+            reminderBtn.classList.remove('active');
+            alert('已取消比賽提醒。');
+        }
+    });
+
+    chrome.alarms.onAlarm.addListener((alarm) => {
+        if (alarm.name === 'gameReminder') {
+            chrome.notifications.create('gameReminder', {
+                type: 'basic',
+                iconUrl: 'img/119.png',
+                title: '⚾️ 道奇比賽即將開始！',
+                message: '洛杉磯道奇比賽將在 30 分鐘後開始！',
+                priority: 2
+            });
+            chrome.storage.local.set({ reminderEnabled: false });
+            updateReminderBtnState();
+        }
+    });
+
+    updateReminderBtnState();
+
     const scheduleBody = document.getElementById('schedule-body');
     const logoContainer = document.getElementById('logo-container');
     const timeLabel = document.getElementById('current-time');

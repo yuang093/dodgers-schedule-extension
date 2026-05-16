@@ -109,6 +109,26 @@ body {
     transform: scale(1.05);
 }
 
+.reminder-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s ease;
+}
+
+.reminder-btn:hover {
+    background: var(--bg-secondary);
+    transform: scale(1.1);
+}
+
+.reminder-btn.active {
+    background: var(--accent-gold);
+    border-color: var(--accent-gold);
+}
+
 /* Logo Container */
 .logo-container {
     display: flex;
