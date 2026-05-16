@@ -49,6 +49,25 @@ document.addEventListener('DOMContentLoaded', function () {
         'Warmup': '熱身中', 'Delayed': '延遲'
     };
 
+    // 主題切換
+    const themeToggle = document.getElementById('theme-toggle');
+
+    function setTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        chrome.storage.local.set({ theme });
+        themeToggle.textContent = theme === 'light' ? '🌙' : '☀️';
+    }
+
+    chrome.storage.local.get(['theme'], (result) => {
+        const savedTheme = result.theme || 'dark';
+        setTheme(savedTheme);
+    });
+
+    themeToggle.addEventListener('click', () => {
+        const current = document.documentElement.getAttribute('data-theme');
+        setTheme(current === 'light' ? 'dark' : 'light');
+    });
+
     const scheduleBody = document.getElementById('schedule-body');
     const logoContainer = document.getElementById('logo-container');
     const timeLabel = document.getElementById('current-time');
