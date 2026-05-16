@@ -104,18 +104,24 @@ async function fetchDodgersSchedule() {
 // 從 MLB API 獲取道奇隊戰績排名
 async function fetchDodgersStandings() {
     try {
+        const today = new Date().toISOString().split('T')[0];
         const params = new URLSearchParams({
             sportId: 1,
             leagueId: 103,
             divisionId: 203,
-            date: new Date().toISOString().split('T')[0]
+            date: today
         });
         const response = await fetch(`https://statsapi.mlb.com/api/v1/standings?${params}`);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
 
+        if (!response.ok) {
+            console.warn(`排名 API 返回 ${response.status}，嘗試備用方案...`);
+            return null;
+        }
+
+        const data = await response.json();
         const records = data.records;
-        if (records && records.length > 0 && records[0].teamRecords && records[0].teamRecords.length > 0) {
+
+        if (records && records.length > 0 && records[0].teamRecords) {
             const teamRecords = records[0].teamRecords.find(r => r.team && r.team.id === DODGERS_TEAM_ID);
             if (teamRecords) {
                 return {
@@ -138,7 +144,12 @@ async function updateSchedule() {
     console.log("正在更新賽程...");
     try {
         const scheduleData = await fetchDodgersSchedule();
-        const standingsData = await fetchDodgersStandings();
+        let standingsData = null;
+        try {
+            standingsData = await fetchDodgersStandings();
+        } catch (standingsErr) {
+            console.warn('排名資料取得失敗，继续更新赛程:', standingsErr);
+        }
         const lastUpdated = new Date().toISOString();
         chrome.storage.local.set({ scheduleData, standingsData, lastUpdated });
         console.log("賽程更新完畢並已儲存。");
