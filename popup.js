@@ -68,6 +68,60 @@ document.addEventListener('DOMContentLoaded', function () {
         setTheme(current === 'light' ? 'dark' : 'light');
     });
 
+    // 分享功能
+    const shareBtn = document.getElementById('share-btn');
+
+    function generateShareText(data) {
+        if (!data.scheduleData || data.scheduleData.length === 0) return '暫無賽程資料';
+
+        const record = calculateSeasonRecord(data);
+        let text = `⚾️ 洛杉磯道奇賽程 ⚾️\n`;
+        text += `📊 戰績: ${record.wins}勝 ${record.losses}負\n\n`;
+
+        const nextGame = findNextGame(data);
+        if (nextGame) {
+            text += `📅 下一場: ${nextGame.date} ${nextGame.time}\n`;
+            text += `🆚 對手: ${TEAM_NAME_MAPPING[nextGame.home_team === 'Los Angeles Dodgers' ? nextGame.away_team : nextGame.home_team] || '未知'}\n\n`;
+        }
+
+        text += `📋 近期賽程:\n`;
+        data.scheduleData.slice(0, 5).forEach(game => {
+            const opponent = TEAM_NAME_MAPPING[game.home_team === 'Los Angeles Dodgers' ? game.away_team : game.home_team] || game.home_team;
+            const status = STATUS_MAPPING[game.status] || game.status;
+            text += `${game.date} ${opponent} ${game.score} [${status}]\n`;
+        });
+
+        text += `\n🔗 由洛杉磯道奇賽程 Chrome 擴充功能提供`;
+        return text;
+    }
+
+    shareBtn.addEventListener('click', async () => {
+        const result = await chrome.storage.local.get(['scheduleData']);
+        const shareText = generateShareText(result);
+
+        if (navigator.share) {
+            try {
+                await navigator.share({ text: shareText });
+            } catch (e) {
+                if (e.name !== 'AbortError') {
+                    copyToClipboard(shareText);
+                }
+            }
+        } else {
+            copyToClipboard(shareText);
+        }
+    });
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            const originalText = shareBtn.textContent;
+            shareBtn.textContent = '已複製!';
+            setTimeout(() => { shareBtn.textContent = originalText; }, 2000);
+        }).catch(() => {
+            alert('複製失敗，請手動複製:\n\n' + text);
+        });
+    }
+
     const scheduleBody = document.getElementById('schedule-body');
     const logoContainer = document.getElementById('logo-container');
     const timeLabel = document.getElementById('current-time');

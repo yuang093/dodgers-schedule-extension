@@ -91,6 +91,24 @@ body {
     transform: scale(1.1);
 }
 
+.share-btn {
+    background: var(--accent-blue);
+    border: none;
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+
+.share-btn:hover {
+    background: var(--accent-blue);
+    opacity: 0.85;
+    transform: scale(1.05);
+}
+
 /* Logo Container */
 .logo-container {
     display: flex;
