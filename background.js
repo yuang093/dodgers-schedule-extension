@@ -106,22 +106,25 @@ async function fetchDodgersStandings() {
     try {
         const params = new URLSearchParams({
             sportId: 1,
-            leagueId: 103,  // 國家聯盟
-            divisionId: 203, // 國聯西區
+            leagueId: 103,
+            divisionId: 203,
             date: new Date().toISOString().split('T')[0]
         });
         const response = await fetch(`https://statsapi.mlb.com/api/v1/standings?${params}`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
 
-        const teamRecords = data.records?.[0]?.teamRecords?.[0];
-        if (teamRecords) {
-            return {
-                rank: teamRecords.leagueRank || teamRecords.divisionRank || 'N/A',
-                wins: teamRecords.wins || 0,
-                losses: teamRecords.losses || 0,
-                pct: teamRecords.pct || '.000'
-            };
+        const records = data.records;
+        if (records && records.length > 0 && records[0].teamRecords && records[0].teamRecords.length > 0) {
+            const teamRecords = records[0].teamRecords.find(r => r.team && r.team.id === DODGERS_TEAM_ID);
+            if (teamRecords) {
+                return {
+                    rank: teamRecords.leagueRank || teamRecords.divisionRank || 'N/A',
+                    wins: teamRecords.wins || 0,
+                    losses: teamRecords.losses || 0,
+                    pct: teamRecords.pct ? String(teamRecords.pct).slice(0, 4) : '.000'
+                };
+            }
         }
         return null;
     } catch (e) {
