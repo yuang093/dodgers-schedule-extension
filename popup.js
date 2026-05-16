@@ -188,6 +188,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const countdownLabel = document.getElementById('countdown');
     const statsRecord = document.getElementById('stats-record');
     const countdownLabelEl = document.getElementById('countdown-label');
+    const standingsRank = document.getElementById('standings-rank');
+    const standingsRecord = document.getElementById('standings-record');
+    const standingsPct = document.getElementById('standings-pct');
 
     function getTeamLogoPath(teamName) {
         const teamId = TEAM_ID_MAPPING[teamName] || 119;
@@ -243,6 +246,13 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             countdownLabelEl.textContent = '賽季結束';
             countdownLabel.textContent = '--:--:--';
+        }
+
+        // 更新排名
+        if (data.standingsData) {
+            standingsRank.textContent = `第${data.standingsData.rank}名`;
+            standingsRecord.textContent = `${data.standingsData.wins}勝 ${data.standingsData.losses}負`;
+            standingsPct.textContent = data.standingsData.pct;
         }
     }
 
@@ -366,7 +376,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // 從 storage 獲取資料並更新 UI
-    chrome.storage.local.get(['scheduleData', 'lastUpdated'], (result) => {
+    chrome.storage.local.get(['scheduleData', 'lastUpdated', 'standingsData'], (result) => {
         if (result.scheduleData) {
             updateUI(result);
             updateStatsBar(result);
@@ -378,7 +388,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // 監聽 storage 變化，即時更新 UI
     chrome.storage.onChanged.addListener((changes, area) => {
         if (area === 'local' && changes.scheduleData) {
-            chrome.storage.local.get(['scheduleData', 'lastUpdated'], (result) => {
+            chrome.storage.local.get(['scheduleData', 'lastUpdated', 'standingsData'], (result) => {
                 updateUI(result);
                 updateStatsBar(result);
             });

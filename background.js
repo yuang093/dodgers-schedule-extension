@@ -101,13 +101,43 @@ async function fetchDodgersSchedule() {
     return scheduleData;
 }
 
+// 從 MLB API 獲取道奇隊戰績排名
+async function fetchDodgersStandings() {
+    try {
+        const params = new URLSearchParams({
+            sportId: 1,
+            leagueId: 103,  // 國家聯盟
+            divisionId: 203, // 國聯西區
+            date: new Date().toISOString().split('T')[0]
+        });
+        const response = await fetch(`https://statsapi.mlb.com/api/v1/standings?${params}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+
+        const teamRecords = data.records?.[0]?.teamRecords?.[0];
+        if (teamRecords) {
+            return {
+                rank: teamRecords.leagueRank || teamRecords.divisionRank || 'N/A',
+                wins: teamRecords.wins || 0,
+                losses: teamRecords.losses || 0,
+                pct: teamRecords.pct || '.000'
+            };
+        }
+        return null;
+    } catch (e) {
+        console.error('獲取排名時出錯：', e);
+        return null;
+    }
+}
+
 // 更新資料並儲存
 async function updateSchedule() {
     console.log("正在更新賽程...");
     try {
         const scheduleData = await fetchDodgersSchedule();
+        const standingsData = await fetchDodgersStandings();
         const lastUpdated = new Date().toISOString();
-        chrome.storage.local.set({ scheduleData, lastUpdated });
+        chrome.storage.local.set({ scheduleData, standingsData, lastUpdated });
         console.log("賽程更新完畢並已儲存。");
     } catch (error) {
         console.error("更新賽程失敗:", error);

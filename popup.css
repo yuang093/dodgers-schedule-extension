@@ -204,6 +204,37 @@ body {
     gap: 2px;
 }
 
+/* Standings Bar */
+.standings-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, var(--bg-card), var(--bg-secondary));
+    border-bottom: 1px solid var(--border-color);
+    font-size: 12px;
+}
+
+.standings-label {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.standings-rank {
+    color: var(--accent-gold);
+    font-weight: 700;
+}
+
+.standings-record {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.standings-pct {
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
 .countdown-label {
     font-size: 10px;
     color: var(--text-secondary);
