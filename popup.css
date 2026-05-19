@@ -69,6 +69,27 @@ body {
     font-size: 20px;
 }
 
+.team-selector {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 6px 12px;
+    color: var(--text-primary);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.team-selector:hover {
+    background: var(--bg-secondary);
+}
+
+.team-selector:focus {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: 2px;
+}
+
 /* Header Controls */
 .header-controls {
     display: flex;

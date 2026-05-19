@@ -43,11 +43,219 @@ document.addEventListener('DOMContentLoaded', function () {
         'Arizona Diamondbacks': 109, 'Colorado Rockies': 115
     };
 
+    // 反向映射：teamId → teamName
+    const TEAM_ID_TO_NAME = Object.fromEntries(
+        Object.entries(TEAM_ID_MAPPING).map(([name, id]) => [id, name])
+    );
+
+    // 分區映射：teamId → { leagueId, divisionId, divisionName }
+    const TEAM_DIVISION_MAPPING = {
+        // 國聯西區 (203)
+        119: { leagueId: 104, divisionId: 203, divisionName: '國聯西區' }, // Dodgers
+        137: { leagueId: 104, divisionId: 203, divisionName: '國聯西區' }, // Giants
+        135: { leagueId: 104, divisionId: 203, divisionName: '國聯西區' }, // Padres
+        109: { leagueId: 104, divisionId: 203, divisionName: '國聯西區' }, // Diamondbacks
+        115: { leagueId: 104, divisionId: 203, divisionName: '國聯西區' }, // Rockies
+        // 國聯東區 (204)
+        144: { leagueId: 104, divisionId: 204, divisionName: '國聯東區' }, // Braves
+        143: { leagueId: 104, divisionId: 204, divisionName: '國聯東區' }, // Phillies
+        121: { leagueId: 104, divisionId: 204, divisionName: '國聯東區' }, // Mets
+        146: { leagueId: 104, divisionId: 204, divisionName: '國聯東區' }, // Marlins
+        120: { leagueId: 104, divisionId: 204, divisionName: '國聯東區' }, // Nationals
+        // 國聯中區 (205)
+        138: { leagueId: 104, divisionId: 205, divisionName: '國聯中區' }, // Cardinals
+        112: { leagueId: 104, divisionId: 205, divisionName: '國聯中區' }, // Cubs
+        113: { leagueId: 104, divisionId: 205, divisionName: '國聯中區' }, // Reds
+        134: { leagueId: 104, divisionId: 205, divisionName: '國聯中區' }, // Pirates
+        158: { leagueId: 104, divisionId: 205, divisionName: '國聯中區' }, // Brewers
+        // 美聯西區 (200)
+        117: { leagueId: 103, divisionId: 200, divisionName: '美聯西區' }, // Astros
+        136: { leagueId: 103, divisionId: 200, divisionName: '美聯西區' }, // Mariners
+        108: { leagueId: 103, divisionId: 200, divisionName: '美聯西區' }, // Angels
+        133: { leagueId: 103, divisionId: 200, divisionName: '美聯西區' }, // Athletics
+        145: { leagueId: 103, divisionId: 200, divisionName: '美聯西區' }, // White Sox
+        // 美聯東區 (201)
+        147: { leagueId: 103, divisionId: 201, divisionName: '美聯東區' }, // Yankees
+        111: { leagueId: 103, divisionId: 201, divisionName: '美聯東區' }, // Red Sox
+        141: { leagueId: 103, divisionId: 201, divisionName: '美聯東區' }, // Blue Jays
+        110: { leagueId: 103, divisionId: 201, divisionName: '美聯東區' }, // Orioles
+        139: { leagueId: 103, divisionId: 201, divisionName: '美聯東區' }, // Rays
+        // 美聯中區 (202)
+        114: { leagueId: 103, divisionId: 202, divisionName: '美聯中區' }, // Guardians
+        142: { leagueId: 103, divisionId: 202, divisionName: '美聯中區' }, // Twins
+        116: { leagueId: 103, divisionId: 202, divisionName: '美聯中區' }, // Tigers
+        118: { leagueId: 103, divisionId: 202, divisionName: '美聯中區' }, // Royals
+        140: { leagueId: 103, divisionId: 202, divisionName: '美聯中區' }  // Rangers
+    };
+
     const STATUS_MAPPING = {
         'Scheduled': '預定', 'In Progress': '比賽中', 'Final': '比賽結束', 'Game Over': '比賽結束',
         'Completed Early': '比賽結束', 'Postponed': '延期', 'Suspended': '暫停', 'Cancelled': '取消',
         'Warmup': '熱身中', 'Delayed': '延遲'
     };
+
+    // 目前選定的球隊
+    let currentSelectedTeamId = 119;
+    let currentSelectedTeamName = 'Los Angeles Dodgers';
+
+    // ========== 球隊選擇功能 ==========
+
+    function convertToTaiwanTime(utcTimeStr) {
+        try {
+            const utcDate = new Date(utcTimeStr);
+            const taiwanTimeStr = utcDate.toLocaleTimeString('en-US', {
+                timeZone: 'Asia/Taipei',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+            const taiwanDateStr = utcDate.toLocaleDateString('en-CA', {
+                timeZone: 'Asia/Taipei'
+            });
+            return { date: taiwanDateStr, time: taiwanTimeStr };
+        } catch (e) {
+            return { date: '待定', time: '待定' };
+        }
+    }
+
+    function getScheduleDates() {
+        const today = new Date();
+        const dates = [];
+        for (let i = -5; i < 3; i++) {
+            const date = new Date(today);
+            date.setDate(date.getDate() + i);
+            dates.push(date.toISOString().split('T')[0]);
+        }
+        return dates;
+    }
+
+    async function fetchTeamSchedule(teamId, teamName) {
+        const dates = getScheduleDates();
+        const baseUrl = "https://statsapi.mlb.com/api/v1/schedule";
+
+        const promises = dates.map(async (date) => {
+            const params = new URLSearchParams({
+                sportId: 1,
+                teamId: teamId,
+                date: date,
+                hydrate: 'game(content(summary)),linescore'
+            });
+            try {
+                const response = await fetch(`${baseUrl}?${params}`);
+                if (!response.ok) return { dates: [] };
+                return await response.json();
+            } catch (e) {
+                return { dates: [] };
+            }
+        });
+
+        const allData = await Promise.all(promises);
+
+        let scheduleData = [];
+        for (const data of allData) {
+            for (const gameDate of data.dates || []) {
+                for (const game of gameDate.games || []) {
+                    const { date: gameDateTw, time: gameTimeTw } = convertToTaiwanTime(game.gameDate);
+                    const gameInfo = {
+                        date: gameDateTw,
+                        home_team: game.teams.home.team.name,
+                        away_team: game.teams.away.team.name,
+                        time: gameTimeTw,
+                        status: game.status.detailedState,
+                        score: '0-0',
+                        inning: '第1局',
+                        raw_status: game.status.detailedState,
+                        homeLeagueRecord: game.teams.home.leagueRecord,
+                        awayLeagueRecord: game.teams.away.leagueRecord
+                    };
+
+                    if (game.status.detailedState === 'In Progress') {
+                        const linescore = game.linescore || {};
+                        const inning = linescore.currentInning || 'N/A';
+                        const inningState = linescore.inningState || 'N/A';
+                        if (inningState === 'Top') {
+                            gameInfo.inning = `第${inning}局上`;
+                        } else if (inningState === 'Bottom' || inningState === 'Middle') {
+                            gameInfo.inning = `第${inning}局下`;
+                        } else {
+                            gameInfo.inning = `第${inning}局`;
+                        }
+                        gameInfo.score = `${linescore.teams?.away?.runs || 0}-${linescore.teams?.home?.runs || 0}`;
+                    } else if (['Final', 'Game Over', 'Completed Early'].includes(game.status.detailedState)) {
+                        gameInfo.score = `${game.teams.away.score}-${game.teams.home.score}`;
+                        gameInfo.inning = '結束';
+                    }
+                    scheduleData.push(gameInfo);
+                }
+            }
+        }
+        return scheduleData;
+    }
+
+    async function fetchTeamStandings(teamId) {
+        const divisionInfo = TEAM_DIVISION_MAPPING[teamId];
+        if (!divisionInfo) return null;
+
+        try {
+            const params = new URLSearchParams({
+                sportId: 1,
+                leagueId: divisionInfo.leagueId,
+                divisionId: divisionInfo.divisionId,
+                hydrate: 'team'
+            });
+            const response = await fetch(`https://statsapi.mlb.com/api/v1/standings?${params}`);
+
+            if (!response.ok) return null;
+
+            const data = await response.json();
+
+            for (const record of data.records || []) {
+                for (const teamRecord of record.teamRecords || []) {
+                    if (teamRecord.team?.id === teamId) {
+                        return {
+                            rank: teamRecord.divisionRank || 'N/A',
+                            wins: teamRecord.wins || 0,
+                            losses: teamRecord.losses || 0,
+                            pct: teamRecord.leagueRecord?.pct
+                                ? String(teamRecord.leagueRecord.pct).slice(0, 4)
+                                : '.000'
+                        };
+                    }
+                }
+            }
+            return null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    async function loadTeamData(teamId, teamName) {
+        currentSelectedTeamId = parseInt(teamId);
+        currentSelectedTeamName = teamName;
+
+        scheduleBody.innerHTML = '<tr><td colspan="6"><div class="loading"><div class="spinner"></div><span>正在載入賽程資料...</span></div></td></tr>';
+
+        try {
+            const [scheduleData, standingsData] = await Promise.all([
+                fetchTeamSchedule(teamId, teamName),
+                fetchTeamStandings(teamId)
+            ]);
+
+            const data = { scheduleData, standingsData, lastUpdated: new Date().toISOString() };
+            updateUI(data);
+            updateStatsBar(data);
+        } catch (error) {
+            scheduleBody.innerHTML = '<tr><td colspan="6">載入失敗，請稍後再試。</td></tr>';
+        }
+    }
+
+    // 球隊選單事件
+    const teamSelector = document.getElementById('team-selector');
+    teamSelector.addEventListener('change', (e) => {
+        const teamId = e.target.value;
+        const teamName = TEAM_ID_TO_NAME[parseInt(teamId)];
+        loadTeamData(teamId, teamName);
+    });
 
     // 主題切換
     const themeToggle = document.getElementById('theme-toggle');
@@ -74,24 +282,25 @@ document.addEventListener('DOMContentLoaded', function () {
     function generateShareText(data) {
         if (!data.scheduleData || data.scheduleData.length === 0) return '暫無賽程資料';
 
-        const record = calculateSeasonRecord(data);
-        let text = `⚾️ 洛杉磯道奇賽程 ⚾️\n`;
+        const record = calculateSeasonRecord(data, currentSelectedTeamName);
+        const teamChineseName = TEAM_NAME_MAPPING[currentSelectedTeamName] || currentSelectedTeamName;
+        let text = `⚾️ ${teamChineseName}賽程 ⚾️\n`;
         text += `📊 戰績: ${record.wins}勝 ${record.losses}負\n\n`;
 
         const nextGame = findNextGame(data);
         if (nextGame) {
             text += `📅 下一場: ${nextGame.date} ${nextGame.time}\n`;
-            text += `🆚 對手: ${TEAM_NAME_MAPPING[nextGame.home_team === 'Los Angeles Dodgers' ? nextGame.away_team : nextGame.home_team] || '未知'}\n\n`;
+            text += `🆚 對手: ${TEAM_NAME_MAPPING[nextGame.home_team === currentSelectedTeamName ? nextGame.away_team : nextGame.home_team] || '未知'}\n\n`;
         }
 
         text += `📋 近期賽程:\n`;
         data.scheduleData.slice(0, 5).forEach(game => {
-            const opponent = TEAM_NAME_MAPPING[game.home_team === 'Los Angeles Dodgers' ? game.away_team : game.home_team] || game.home_team;
+            const opponent = TEAM_NAME_MAPPING[game.home_team === currentSelectedTeamName ? game.away_team : game.home_team] || game.home_team;
             const status = STATUS_MAPPING[game.status] || game.status;
             text += `${game.date} ${opponent} ${game.score} [${status}]\n`;
         });
 
-        text += `\n🔗 由洛杉磯道奇賽程 Chrome 擴充功能提供`;
+        text += `\n🔗 由 MLB 球隊賽程 Chrome 擴充功能提供`;
         return text;
     }
 
@@ -205,23 +414,23 @@ document.addEventListener('DOMContentLoaded', function () {
         return `img/${teamId}.png`;
     }
 
-    function isDodgersWin(game) {
+    function isTeamWin(game, teamName) {
         if (!['Final', 'Game Over', 'Completed Early'].includes(game.raw_status)) {
             return null;
         }
         try {
             const [awayScore, homeScore] = game.score.split('-').map(Number);
-            return (game.home_team === 'Los Angeles Dodgers') ? homeScore > awayScore : awayScore > homeScore;
+            return (game.home_team === teamName) ? homeScore > awayScore : awayScore > homeScore;
         } catch (e) {
             return null;
         }
     }
 
-    function calculateSeasonRecord(data) {
+    function calculateSeasonRecord(data, teamName) {
         if (!data.scheduleData) return { wins: 0, losses: 0 };
         let wins = 0, losses = 0;
         data.scheduleData.forEach(game => {
-            const result = isDodgersWin(game);
+            const result = isTeamWin(game, teamName);
             if (result === true) wins++;
             else if (result === false) losses++;
         });
@@ -244,7 +453,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function updateStatsBar(data) {
-        const record = calculateSeasonRecord(data);
+        const record = calculateSeasonRecord(data, currentSelectedTeamName);
         statsRecord.innerHTML = `<span class="wins">${record.wins}勝</span> <span class="losses">${record.losses}負</span>`;
 
         const nextGame = findNextGame(data);
@@ -261,6 +470,12 @@ document.addEventListener('DOMContentLoaded', function () {
             standingsRank.textContent = `第${data.standingsData.rank}名`;
             standingsRecord.textContent = `${data.standingsData.wins}勝 ${data.standingsData.losses}負`;
             standingsPct.textContent = data.standingsData.pct;
+        }
+
+        // 更新分區標籤
+        const divisionInfo = TEAM_DIVISION_MAPPING[currentSelectedTeamId];
+        if (divisionInfo) {
+            document.getElementById('standings-label').textContent = divisionInfo.divisionName;
         }
     }
 
@@ -314,16 +529,16 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (currentGame) {
-            const dodgersLogo = document.createElement('img');
-            dodgersLogo.src = getTeamLogoPath('Los Angeles Dodgers');
-            dodgersLogo.alt = 'Los Angeles Dodgers';
+            const teamLogo = document.createElement('img');
+            teamLogo.src = getTeamLogoPath(currentSelectedTeamName);
+            teamLogo.alt = currentSelectedTeamName;
 
-            const opponentName = currentGame.home_team === 'Los Angeles Dodgers' ? currentGame.away_team : currentGame.home_team;
+            const opponentName = currentGame.home_team === currentSelectedTeamName ? currentGame.away_team : currentGame.home_team;
             const opponentLogo = document.createElement('img');
             opponentLogo.src = getTeamLogoPath(opponentName);
             opponentLogo.alt = opponentName;
 
-            logoContainer.appendChild(dodgersLogo);
+            logoContainer.appendChild(teamLogo);
 
             const vsText = document.createElement('span');
             vsText.className = 'vs-text';
@@ -336,13 +551,13 @@ document.addEventListener('DOMContentLoaded', function () {
         // 填入賽程表格
         data.scheduleData.forEach(game => {
             const row = document.createElement('tr');
-            const opponent = game.home_team === 'Los Angeles Dodgers' ? game.away_team : game.home_team;
+            const opponent = game.home_team === currentSelectedTeamName ? game.away_team : game.home_team;
             const opponentChinese = TEAM_NAME_MAPPING[opponent] || opponent;
 
             let tagClass = '';
             if (game.date === today) tagClass = 'today';
             if (['Final', 'Game Over', 'Completed Early'].includes(game.raw_status)) {
-                const win = isDodgersWin(game);
+                const win = isTeamWin(game, currentSelectedTeamName);
                 if (win === true) tagClass += ' win';
                 else if (win === false) tagClass += ' loss';
                 else tagClass += ' final';
@@ -393,22 +608,31 @@ document.addEventListener('DOMContentLoaded', function () {
         if (window.countdownIntervalId) clearInterval(window.countdownIntervalId);
     });
 
-    // 從 storage 獲取資料並更新 UI
+    // 從 storage 獲取資料並更新 UI（向後相容）
     chrome.storage.local.get(['scheduleData', 'lastUpdated', 'standingsData'], (result) => {
         if (result.scheduleData) {
             updateUI(result);
             updateStatsBar(result);
         } else {
-            scheduleBody.innerHTML = '<tr><td colspan="6">正在載入賽程資料...</td></tr>';
+            // 如果沒有快取資料，直接載入選定的球隊
+            loadTeamData(currentSelectedTeamId, currentSelectedTeamName);
         }
     });
 
-    // 監聽 storage 變化，即時更新 UI
+    // 監聽 storage 變化（向後相容，忽略不感興趣的變化）
     chrome.storage.onChanged.addListener((changes, area) => {
         if (area === 'local' && changes.scheduleData) {
+            // 只有當改變的資料是我們目前的球隊時才更新
             chrome.storage.local.get(['scheduleData', 'lastUpdated', 'standingsData'], (result) => {
-                updateUI(result);
-                updateStatsBar(result);
+                if (result.scheduleData && result.scheduleData.length > 0) {
+                    const firstGame = result.scheduleData[0];
+                    const isOurTeam = firstGame.home_team === currentSelectedTeamName ||
+                                     firstGame.away_team === currentSelectedTeamName;
+                    if (isOurTeam) {
+                        updateUI(result);
+                        updateStatsBar(result);
+                    }
+                }
             });
         }
     });

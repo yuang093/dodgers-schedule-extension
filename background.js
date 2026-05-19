@@ -106,10 +106,11 @@ async function fetchDodgersSchedule() {
 // 從 MLB API 獲取道奇隊戰績排名
 async function fetchDodgersStandings() {
     try {
-        // 國聯西區 divisionId=203，先嘗試不用 date 參數避免 Internal error
+        // 國聯西區 divisionId=203，只取需要的分區減少資料傳輸
         const params = new URLSearchParams({
             sportId: 1,
             leagueId: 104,
+            divisionId: 203,
             hydrate: 'team'
         });
         const response = await fetch(`https://statsapi.mlb.com/api/v1/standings?${params}`);
