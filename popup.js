@@ -182,6 +182,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     updateReminderBtnState();
 
+    // 斗內按鈕
+    const donateBtn = document.getElementById('donate-btn');
+    donateBtn.addEventListener('click', () => {
+        window.open('https://service.jkopay.com/r/transfer?j=Transfer:901055756', '_blank');
+    });
+
     const scheduleBody = document.getElementById('schedule-body');
     const logoContainer = document.getElementById('logo-container');
     const timeLabel = document.getElementById('current-time');

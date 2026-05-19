@@ -129,6 +129,23 @@ body {
     border-color: var(--accent-gold);
 }
 
+.donate-btn {
+    background: linear-gradient(135deg, #ff6b9d, #c44569);
+    border: none;
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    transition: all 0.2s ease;
+}
+
+.donate-btn:hover {
+    opacity: 0.85;
+    transform: scale(1.05);
+}
+
 /* Logo Container */
 .logo-container {
     display: flex;
