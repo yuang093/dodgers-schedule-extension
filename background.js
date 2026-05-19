@@ -75,7 +75,9 @@ async function fetchDodgersSchedule() {
                     status: game.status.detailedState,
                     score: '0-0',
                     inning: '第1局',
-                    raw_status: game.status.detailedState
+                    raw_status: game.status.detailedState,
+                    homeLeagueRecord: game.teams.home.leagueRecord,
+                    awayLeagueRecord: game.teams.away.leagueRecord
                 };
 
                 if (game.status.detailedState === 'In Progress') {
@@ -104,6 +106,22 @@ async function fetchDodgersSchedule() {
 // 從 MLB API 獲取道奇隊戰績排名
 async function fetchDodgersStandings() {
     try {
+        // 先嘗試從賽程資料取得 leagueRecord（更準確）
+        const scheduleData = await fetchDodgersSchedule();
+        for (const game of scheduleData) {
+            const isDodgersHome = game.home_team === 'Los Angeles Dodgers';
+            const leagueRecord = isDodgersHome ? game.homeLeagueRecord : game.awayLeagueRecord;
+            if (leagueRecord && leagueRecord.wins !== undefined) {
+                console.log(`從賽程取得戰績: ${leagueRecord.wins}勝 ${leagueRecord.losses}負`);
+                return {
+                    wins: leagueRecord.wins,
+                    losses: leagueRecord.losses,
+                    pct: leagueRecord.pct || '.000'
+                };
+            }
+        }
+
+        // 備用：使用排名 API
         const today = new Date().toISOString().split('T')[0];
         const params = new URLSearchParams({
             sportId: 1,
@@ -114,7 +132,7 @@ async function fetchDodgersStandings() {
         const response = await fetch(`https://statsapi.mlb.com/api/v1/standings?${params}`);
 
         if (!response.ok) {
-            console.warn(`排名 API 返回 ${response.status}，嘗試備用方案...`);
+            console.warn(`排名 API 返回 ${response.status}，使用賽程資料中的 leagueRecord`);
             return null;
         }
 
@@ -124,6 +142,7 @@ async function fetchDodgersStandings() {
         if (records && records.length > 0 && records[0].teamRecords) {
             const teamRecords = records[0].teamRecords.find(r => r.team && r.team.id === DODGERS_TEAM_ID);
             if (teamRecords) {
+                console.log(`從排名 API 取得戰績: ${teamRecords.wins}勝 ${teamRecords.losses}負`);
                 return {
                     rank: teamRecords.leagueRank || teamRecords.divisionRank || 'N/A',
                     wins: teamRecords.wins || 0,
@@ -144,12 +163,23 @@ async function updateSchedule() {
     console.log("正在更新賽程...");
     try {
         const scheduleData = await fetchDodgersSchedule();
+
+        // 從賽程資料取得道奇隊戰績
         let standingsData = null;
-        try {
-            standingsData = await fetchDodgersStandings();
-        } catch (standingsErr) {
-            console.warn('排名資料取得失敗，继续更新赛程:', standingsErr);
+        for (const game of scheduleData) {
+            const isDodgersHome = game.home_team === 'Los Angeles Dodgers';
+            const leagueRecord = isDodgersHome ? game.homeLeagueRecord : game.awayLeagueRecord;
+            if (leagueRecord && leagueRecord.wins !== undefined) {
+                standingsData = {
+                    wins: leagueRecord.wins,
+                    losses: leagueRecord.losses,
+                    pct: leagueRecord.pct || '.000'
+                };
+                console.log(`取得戰績: ${standingsData.wins}勝 ${standingsData.losses}負`);
+                break;
+            }
         }
+
         const lastUpdated = new Date().toISOString();
         chrome.storage.local.set({ scheduleData, standingsData, lastUpdated });
         console.log("賽程更新完畢並已儲存。");
@@ -165,7 +195,19 @@ const CACHE_KEY = 'offline-schedule-data';
 async function cacheScheduleData() {
     try {
         const scheduleData = await fetchDodgersSchedule();
-        const standingsData = await fetchDodgersStandings();
+        let standingsData = null;
+        for (const game of scheduleData) {
+            const isDodgersHome = game.home_team === 'Los Angeles Dodgers';
+            const leagueRecord = isDodgersHome ? game.homeLeagueRecord : game.awayLeagueRecord;
+            if (leagueRecord && leagueRecord.wins !== undefined) {
+                standingsData = {
+                    wins: leagueRecord.wins,
+                    losses: leagueRecord.losses,
+                    pct: leagueRecord.pct || '.000'
+                };
+                break;
+            }
+        }
         const data = {
             scheduleData,
             standingsData,
