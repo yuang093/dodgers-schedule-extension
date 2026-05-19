@@ -193,7 +193,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     async function fetchTeamStandings(teamId) {
-        const divisionInfo = TEAM_DIVISION_MAPPING[teamId];
+        const teamIdNum = parseInt(teamId);
+        const divisionInfo = TEAM_DIVISION_MAPPING[teamIdNum];
         if (!divisionInfo) return null;
 
         try {
@@ -211,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             for (const record of data.records || []) {
                 for (const teamRecord of record.teamRecords || []) {
-                    if (teamRecord.team?.id === teamId) {
+                    if (teamRecord.team?.id === teamIdNum) {
                         return {
                             rank: teamRecord.divisionRank || 'N/A',
                             wins: teamRecord.wins || 0,
