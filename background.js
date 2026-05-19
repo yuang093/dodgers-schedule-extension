@@ -107,42 +107,37 @@ async function fetchDodgersSchedule() {
 async function fetchDodgersStandings() {
     try {
         // 國聯西區 divisionId=203，先嘗試不用 date 參數避免 Internal error
-        let params = new URLSearchParams({
+        const params = new URLSearchParams({
             sportId: 1,
             leagueId: 104,
-            divisionId: 203,
             hydrate: 'team'
         });
-        let response = await fetch(`https://statsapi.mlb.com/api/v1/standings?${params}`);
+        const response = await fetch(`https://statsapi.mlb.com/api/v1/standings?${params}`);
 
         if (!response.ok) {
             console.warn(`排名 API 返回 ${response.status}`);
-        } else {
-            const data = await response.json();
-            const records = data.records;
+            return null;
+        }
 
-            if (records && records.length > 0) {
-                // 找到國聯西區的記錄
-                const nlWestRecord = records.find(r =>
-                    r.division && r.division.id === 203
-                );
+        const data = await response.json();
+        const records = data.records;
 
-                if (nlWestRecord && nlWestRecord.teamRecords) {
-                    const dodgersRecord = nlWestRecord.teamRecords.find(
-                        tr => tr.team && tr.team.id === DODGERS_TEAM_ID
-                    );
+        // 遍歷所有分區記錄，找到道奇隊
+        for (const record of records || []) {
+            // 只處理國聯西區 (division id=203)
+            if (record.division?.id !== 203) continue;
 
-                    if (dodgersRecord) {
-                        console.log(`從排名 API 取得: 第${dodgersRecord.divisionRank}名, ${dodgersRecord.wins}勝 ${dodgersRecord.losses}負`);
-                        return {
-                            rank: dodgersRecord.divisionRank || 'N/A',
-                            wins: dodgersRecord.wins || 0,
-                            losses: dodgersRecord.losses || 0,
-                            pct: dodgersRecord.leagueRecord?.pct
-                                ? String(dodgersRecord.leagueRecord.pct).slice(0, 4)
-                                : '.000'
-                        };
-                    }
+            for (const teamRecord of record.teamRecords || []) {
+                if (teamRecord.team?.id === DODGERS_TEAM_ID) {
+                    console.log(`從排名 API 取得: 第${teamRecord.divisionRank}名, ${teamRecord.wins}勝 ${teamRecord.losses}負`);
+                    return {
+                        rank: teamRecord.divisionRank || 'N/A',
+                        wins: teamRecord.wins || 0,
+                        losses: teamRecord.losses || 0,
+                        pct: teamRecord.leagueRecord?.pct
+                            ? String(teamRecord.leagueRecord.pct).slice(0, 4)
+                            : '.000'
+                    };
                 }
             }
         }
