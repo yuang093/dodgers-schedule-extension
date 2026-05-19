@@ -170,10 +170,13 @@ async function updateSchedule() {
             }
         }
 
-        // 如果賽程沒有戰績，嘗試從排名 API 取得
-        if (!standingsData) {
-            const apiStandings = await fetchDodgersStandings();
-            if (apiStandings) {
+        // 從排名 API 取得排名（即使已有戰績，仍需取得排名）
+        const apiStandings = await fetchDodgersStandings();
+        if (apiStandings) {
+            if (standingsData) {
+                // 合併：使用賽程的戰績 + API 的排名
+                standingsData.rank = apiStandings.rank;
+            } else {
                 standingsData = apiStandings;
             }
         }
@@ -206,8 +209,13 @@ async function cacheScheduleData() {
                 break;
             }
         }
-        if (!standingsData) {
-            standingsData = await fetchDodgersStandings();
+        const apiStandings = await fetchDodgersStandings();
+        if (apiStandings) {
+            if (standingsData) {
+                standingsData.rank = apiStandings.rank;
+            } else {
+                standingsData = apiStandings;
+            }
         }
         const data = {
             scheduleData,
