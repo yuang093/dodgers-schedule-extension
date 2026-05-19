@@ -106,49 +106,44 @@ async function fetchDodgersSchedule() {
 // 從 MLB API 獲取道奇隊戰績排名
 async function fetchDodgersStandings() {
     try {
-        // 先嘗試從賽程資料取得 leagueRecord（更準確）
-        const scheduleData = await fetchDodgersSchedule();
-        for (const game of scheduleData) {
-            const isDodgersHome = game.home_team === 'Los Angeles Dodgers';
-            const leagueRecord = isDodgersHome ? game.homeLeagueRecord : game.awayLeagueRecord;
-            if (leagueRecord && leagueRecord.wins !== undefined) {
-                console.log(`從賽程取得戰績: ${leagueRecord.wins}勝 ${leagueRecord.losses}負`);
-                return {
-                    wins: leagueRecord.wins,
-                    losses: leagueRecord.losses,
-                    pct: leagueRecord.pct || '.000'
-                };
-            }
-        }
-
-        // 備用：使用排名 API
-        const today = new Date().toISOString().split('T')[0];
-        const params = new URLSearchParams({
+        // 國聯西區 divisionId=203，先嘗試不用 date 參數避免 Internal error
+        let params = new URLSearchParams({
             sportId: 1,
-            leagueId: 103,
+            leagueId: 104,
             divisionId: 203,
-            date: today
+            hydrate: 'team'
         });
-        const response = await fetch(`https://statsapi.mlb.com/api/v1/standings?${params}`);
+        let response = await fetch(`https://statsapi.mlb.com/api/v1/standings?${params}`);
 
         if (!response.ok) {
-            console.warn(`排名 API 返回 ${response.status}，使用賽程資料中的 leagueRecord`);
-            return null;
-        }
+            console.warn(`排名 API 返回 ${response.status}`);
+        } else {
+            const data = await response.json();
+            const records = data.records;
 
-        const data = await response.json();
-        const records = data.records;
+            if (records && records.length > 0) {
+                // 找到國聯西區的記錄
+                const nlWestRecord = records.find(r =>
+                    r.division && r.division.id === 203
+                );
 
-        if (records && records.length > 0 && records[0].teamRecords) {
-            const teamRecords = records[0].teamRecords.find(r => r.team && r.team.id === DODGERS_TEAM_ID);
-            if (teamRecords) {
-                console.log(`從排名 API 取得戰績: ${teamRecords.wins}勝 ${teamRecords.losses}負`);
-                return {
-                    rank: teamRecords.leagueRank || teamRecords.divisionRank || 'N/A',
-                    wins: teamRecords.wins || 0,
-                    losses: teamRecords.losses || 0,
-                    pct: teamRecords.pct ? String(teamRecords.pct).slice(0, 4) : '.000'
-                };
+                if (nlWestRecord && nlWestRecord.teamRecords) {
+                    const dodgersRecord = nlWestRecord.teamRecords.find(
+                        tr => tr.team && tr.team.id === DODGERS_TEAM_ID
+                    );
+
+                    if (dodgersRecord) {
+                        console.log(`從排名 API 取得: 第${dodgersRecord.divisionRank}名, ${dodgersRecord.wins}勝 ${dodgersRecord.losses}負`);
+                        return {
+                            rank: dodgersRecord.divisionRank || 'N/A',
+                            wins: dodgersRecord.wins || 0,
+                            losses: dodgersRecord.losses || 0,
+                            pct: dodgersRecord.leagueRecord?.pct
+                                ? String(dodgersRecord.leagueRecord.pct).slice(0, 4)
+                                : '.000'
+                        };
+                    }
+                }
             }
         }
         return null;
@@ -175,8 +170,16 @@ async function updateSchedule() {
                     losses: leagueRecord.losses,
                     pct: leagueRecord.pct || '.000'
                 };
-                console.log(`取得戰績: ${standingsData.wins}勝 ${standingsData.losses}負`);
+                console.log(`從賽程取得戰績: ${standingsData.wins}勝 ${standingsData.losses}負`);
                 break;
+            }
+        }
+
+        // 如果賽程沒有戰績，嘗試從排名 API 取得
+        if (!standingsData) {
+            const apiStandings = await fetchDodgersStandings();
+            if (apiStandings) {
+                standingsData = apiStandings;
             }
         }
 
@@ -207,6 +210,9 @@ async function cacheScheduleData() {
                 };
                 break;
             }
+        }
+        if (!standingsData) {
+            standingsData = await fetchDodgersStandings();
         }
         const data = {
             scheduleData,
